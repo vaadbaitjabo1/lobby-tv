@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useGallery } from '../hooks/useGallery'
 
 function getYouTubeId(url) {
@@ -13,7 +13,9 @@ function getYouTubeId(url) {
 function buildEmbedUrl(videoId) {
   const params = new URLSearchParams({
     autoplay: '1',
-    mute: '1',
+    loop: '1',
+    playlist: videoId,   // required for loop to work
+    mute: '0',
     controls: '0',
     rel: '0',
     modestbranding: '1',
@@ -22,6 +24,7 @@ function buildEmbedUrl(videoId) {
     playsinline: '1',
     fs: '0',
     vq: 'hd1080',
+    hd: '1',
   })
   return `https://www.youtube.com/embed/${videoId}?${params}`
 }
@@ -30,22 +33,25 @@ export default function Gallery() {
   const items = useGallery()
   const [index, setIndex] = useState(0)
   const [visible, setVisible] = useState(true)
+  const toRef = useRef(null)
 
   const currentItem = items[index]
   const isYouTube = currentItem ? !!getYouTubeId(currentItem.url) : false
 
   useEffect(() => {
     if (items.length < 2) return
-    // סרטון YouTube — מחכה זמן ארוך יותר לפני החלפה
     const duration = isYouTube ? 60000 : 7000
     const id = setInterval(() => {
       setVisible(false)
-      setTimeout(() => {
+      toRef.current = setTimeout(() => {
         setIndex(i => (i + 1) % items.length)
         setVisible(true)
       }, 400)
     }, duration)
-    return () => clearInterval(id)
+    return () => {
+      clearInterval(id)
+      if (toRef.current) { clearTimeout(toRef.current); toRef.current = null }
+    }
   }, [items.length, isYouTube])
 
   if (!items.length) return (
@@ -73,7 +79,6 @@ export default function Gallery() {
     <div style={{ flex: 1, position: 'relative', overflow: 'hidden', background: '#000' }}>
       {embedUrl ? (
         <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', opacity: visible ? 1 : 0, transition: 'opacity 0.4s ease' }}>
-          {/* גובה = גובה המסך + 120px לקיצוץ ממשק YouTube. רוחב = 16:9 של הגובה → ממלא ללא פסים שחורים */}
           <iframe
             key={index}
             src={embedUrl}

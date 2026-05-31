@@ -1,6 +1,6 @@
 import { useAnnouncements } from '../hooks/useAnnouncements'
 
-export default function Announcements({ dark }) {
+export default function Announcements() {
   const items = useAnnouncements()
 
   return (
@@ -12,7 +12,6 @@ export default function Announcements({ dark }) {
       overflow: 'hidden',
       minHeight: 0,
     }}>
-      {/* כותרת */}
       <div style={{
         background: 'var(--color-primary)',
         padding: '0.55rem 1rem',
@@ -27,7 +26,6 @@ export default function Announcements({ dark }) {
         <span style={{ fontSize: '1.1rem' }}>📋</span>
       </div>
 
-      {/* רשימת הודעות */}
       <div style={{
         flex: 1,
         overflowY: 'auto',

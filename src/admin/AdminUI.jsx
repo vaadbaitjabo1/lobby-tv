@@ -1,5 +1,3 @@
-// רכיבי UI משותפים לפאנל הניהול
-
 export function AdminCard({ title, children, compact }) {
   return (
     <div style={{

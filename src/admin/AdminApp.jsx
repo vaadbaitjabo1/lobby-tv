@@ -1,29 +1,58 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { supabase } from '../lib/supabase'
 import AdminLogin from './AdminLogin'
 import Announcements from './pages/Announcements'
 import Gallery from './pages/Gallery'
 import Businesses from './pages/Businesses'
+import ManagementCompany from './pages/ManagementCompany'
 import Settings from './pages/Settings'
+import Preview from './pages/Preview'
 
 const TABS = [
   { id: 'announcements', label: 'הודעות',        icon: '📢' },
   { id: 'gallery',       label: 'גלריה',         icon: '🖼️' },
   { id: 'businesses',    label: 'עסקים ושירותים', icon: '🏪' },
+  { id: 'management',    label: 'חברת ניהול',     icon: '🏢' },
   { id: 'settings',      label: 'הגדרות',        icon: '⚙️' },
+  { id: 'preview',       label: 'תצוגה מקדימה',  icon: '👁️' },
 ]
 
 export default function AdminApp() {
-  const [authed, setAuthed] = useState(() => sessionStorage.getItem('admin') === '1')
-  const [tab, setTab]       = useState('announcements')
+  const [authed, setAuthed]   = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [tab, setTab]         = useState('announcements')
 
-  if (!authed) return <AdminLogin onLogin={() => { sessionStorage.setItem('admin', '1'); setAuthed(true) }} />
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setAuthed(!!data.session)
+      setLoading(false)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setAuthed(!!session)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
 
-  const Page = { announcements: Announcements, gallery: Gallery, businesses: Businesses, settings: Settings }[tab]
+  if (loading) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Rubik, sans-serif', color: '#8890a4' }}>
+      טוען…
+    </div>
+  )
+
+  if (!authed) return <AdminLogin onLogin={() => setAuthed(true)} />
+
+  const Page = {
+    announcements: Announcements,
+    gallery:       Gallery,
+    businesses:    Businesses,
+    management:    ManagementCompany,
+    settings:      Settings,
+    preview:       Preview,
+  }[tab]
 
   return (
     <div style={{ minHeight: '100vh', background: '#f4f6fa', fontFamily: 'Rubik, sans-serif', direction: 'rtl' }}>
 
-      {/* Topbar */}
       <header style={{
         background: '#1e2330', color: '#fff', padding: '0 1.5rem',
         height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -34,14 +63,14 @@ export default function AdminApp() {
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           <a
-            href="/lobby-tv/"
+            href="/#/tv"
             target="_blank"
             style={{ color: '#b8972a', fontSize: '0.85rem', textDecoration: 'none', fontWeight: 500 }}
           >
             צפה במסך ↗
           </a>
           <button
-            onClick={() => { sessionStorage.removeItem('admin'); setAuthed(false) }}
+            onClick={() => supabase.auth.signOut()}
             style={{
               background: 'transparent', border: '1px solid rgba(255,255,255,0.2)',
               color: '#fff', borderRadius: '6px', padding: '0.3rem 0.75rem',
@@ -55,7 +84,6 @@ export default function AdminApp() {
 
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 56px)' }}>
 
-        {/* Sidebar — desktop */}
         <nav style={{
           width: '200px', background: '#fff', borderLeft: '1px solid #e5e7eb',
           padding: '1.25rem 0', display: 'flex', flexDirection: 'column', gap: '0.25rem',
@@ -78,7 +106,6 @@ export default function AdminApp() {
           ))}
         </nav>
 
-        {/* Content */}
         <main style={{ flex: 1, padding: '1.5rem', maxWidth: '760px' }}>
           <h1 style={{ margin: '0 0 1.25rem', fontSize: '1.25rem', fontWeight: 700, color: '#1e2330' }}>
             {TABS.find(t => t.id === tab)?.label}
@@ -87,7 +114,6 @@ export default function AdminApp() {
         </main>
       </div>
 
-      {/* Bottom nav — mobile */}
       <nav style={{
         position: 'fixed', bottom: 0, right: 0, left: 0,
         background: '#1e2330', display: 'flex',

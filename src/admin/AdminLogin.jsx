@@ -1,15 +1,20 @@
 import { useState } from 'react'
-
-const CORRECT = import.meta.env.VITE_ADMIN_PASSWORD
+import { supabase } from '../lib/supabase'
 
 export default function AdminLogin({ onLogin }) {
-  const [pw, setPw]     = useState('')
-  const [err, setErr]   = useState(false)
+  const [email, setEmail]   = useState('')
+  const [pw, setPw]         = useState('')
+  const [err, setErr]       = useState('')
+  const [loading, setLoading] = useState(false)
 
-  function submit(e) {
+  async function submit(e) {
     e.preventDefault()
-    if (pw === CORRECT) { onLogin(); setErr(false) }
-    else { setErr(true); setPw('') }
+    setLoading(true)
+    setErr('')
+    const { error } = await supabase.auth.signInWithPassword({ email, password: pw })
+    setLoading(false)
+    if (error) { setErr('אימייל או סיסמה שגויים'); setPw('') }
+    else onLogin()
   }
 
   return (
@@ -33,11 +38,12 @@ export default function AdminLogin({ onLogin }) {
 
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <input
-            type="password"
-            placeholder="סיסמה"
-            value={pw}
-            onChange={e => { setPw(e.target.value); setErr(false) }}
+            type="email"
+            placeholder="אימייל"
+            value={email}
+            onChange={e => { setEmail(e.target.value); setErr('') }}
             autoFocus
+            required
             style={{
               padding: '0.75rem 1rem', borderRadius: '8px', fontSize: '1rem',
               border: `1.5px solid ${err ? '#e53e3e' : '#d1d5db'}`,
@@ -45,13 +51,27 @@ export default function AdminLogin({ onLogin }) {
               direction: 'rtl',
             }}
           />
-          {err && <p style={{ margin: 0, color: '#e53e3e', fontSize: '0.85rem', textAlign: 'center' }}>סיסמה שגויה</p>}
-          <button type="submit" style={{
+          <input
+            type="password"
+            placeholder="סיסמה"
+            value={pw}
+            onChange={e => { setPw(e.target.value); setErr('') }}
+            required
+            style={{
+              padding: '0.75rem 1rem', borderRadius: '8px', fontSize: '1rem',
+              border: `1.5px solid ${err ? '#e53e3e' : '#d1d5db'}`,
+              outline: 'none', textAlign: 'right', fontFamily: 'inherit',
+              direction: 'rtl',
+            }}
+          />
+          {err && <p style={{ margin: 0, color: '#e53e3e', fontSize: '0.85rem', textAlign: 'center' }}>{err}</p>}
+          <button type="submit" disabled={loading} style={{
             padding: '0.75rem', borderRadius: '8px', fontSize: '1rem',
-            fontWeight: 600, cursor: 'pointer', border: 'none',
+            fontWeight: 600, cursor: loading ? 'wait' : 'pointer', border: 'none',
             background: '#1e2330', color: '#fff', fontFamily: 'inherit',
+            opacity: loading ? 0.7 : 1,
           }}>
-            כניסה
+            {loading ? 'מתחבר…' : 'כניסה'}
           </button>
         </form>
       </div>

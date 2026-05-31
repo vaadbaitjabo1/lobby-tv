@@ -3,13 +3,19 @@ import { useState, useEffect } from 'react'
 const API = 'https://www.hebcal.com/shabbat?cfg=json&latitude=32.0269&longitude=34.8219&tzid=Asia/Jerusalem&m=50&b=18'
 
 function isShabbatTime() {
-  const d = new Date().getDay()
-  return d === 5 || d === 6   // שישי או שבת
+  const now  = new Date()
+  const day  = now.getDay()
+  const mins = now.getHours() * 60 + now.getMinutes()
+  if (day === 5) return mins >= 7 * 60       // שישי מ-07:00
+  if (day === 6) return mins <= 21 * 60      // שבת עד 21:00
+  return false
 }
 
 function isSimMode() {
-  return typeof window !== 'undefined' &&
-    new URLSearchParams(window.location.search).get('sim') === 'shabbat'
+  if (typeof window === 'undefined') return false
+  const hash   = window.location.hash
+  const search = hash.includes('?') ? hash.split('?')[1] : ''
+  return new URLSearchParams(search).get('sim') === 'shabbat'
 }
 
 export function useShabbat() {
@@ -17,7 +23,6 @@ export function useShabbat() {
   const [show, setShow]   = useState(() => isShabbatTime() || isSimMode())
 
   useEffect(() => {
-    // עדכון show כל דקה (למקרה שעבר חצות)
     const id = setInterval(() => {
       setShow(isShabbatTime() || isSimMode())
     }, 60_000)
@@ -44,6 +49,8 @@ export function useShabbat() {
 
         let parashaDesc = null
         if (parasha) {
+          const controller = new AbortController()
+          const timeout    = setTimeout(() => controller.abort(), 6000)
           try {
             const cleanName = parasha
               .replace(/־/g, ' ')
@@ -52,17 +59,17 @@ export function useShabbat() {
               .replace(/\s+/g, ' ')
               .trim()
             const wikiBase = 'https://he.wikipedia.org/api/rest_v1/page/summary/'
-            let wikiRes = await window.fetch(wikiBase + encodeURIComponent('פרשת ' + cleanName))
+            let wikiRes = await window.fetch(wikiBase + encodeURIComponent('פרשת ' + cleanName), { signal: controller.signal })
             if (!wikiRes.ok) {
-              // פרשה כפולה (בהר בחקתי) — נסה רק שם ראשון
               const firstName = cleanName.split(' ')[0]
-              wikiRes = await window.fetch(wikiBase + encodeURIComponent('פרשת ' + firstName))
+              wikiRes = await window.fetch(wikiBase + encodeURIComponent('פרשת ' + firstName), { signal: controller.signal })
             }
             if (wikiRes.ok) {
               const wikiData = await wikiRes.json()
               parashaDesc = wikiData.extract ?? null
             }
-          } catch { /* שקט */ }
+          } catch { /* שקט — timeout או שגיאת רשת */ }
+          finally { clearTimeout(timeout) }
         }
 
         setData({ candles, havdalah, parasha, parashaEn, memo, parashaDesc })

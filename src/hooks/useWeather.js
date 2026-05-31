@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react'
 
-const API_KEY = import.meta.env.VITE_OPENWEATHER_KEY
+const API_KEY = '330eab0ae43fc718662392a49f9d2116'
 const CITY = 'Azor,IL'
 const URL = `https://api.openweathermap.org/data/2.5/weather?q=${CITY}&appid=${API_KEY}&units=metric&lang=he`
-
-const REFRESH_MS = 10 * 60 * 1000 // 10 minutes
+const REFRESH_MS = 10 * 60 * 1000
 
 export function useWeather() {
   const [weather, setWeather] = useState(null)
@@ -21,7 +20,7 @@ export function useWeather() {
         desc: data.weather[0].description,
         icon: data.weather[0].icon,
         humidity: data.main.humidity,
-        wind: Math.round(data.wind.speed * 3.6), // m/s → km/h
+        wind: Math.round(data.wind.speed * 3.6),
       })
     } catch (e) {
       setError(e.message)

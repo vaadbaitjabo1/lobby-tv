@@ -1,27 +1,65 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNewsTicker } from '../hooks/useNewsTicker'
 
-const NBSP = ' '
-const SEPARATOR = NBSP.repeat(14) + '◆' + NBSP.repeat(14)
-const PX_PER_SEC = 80
+// Non-breaking spaces so the browser never collapses them
+const NBSP      = ' '
+const SEPARATOR = NBSP.repeat(10) + '◆' + NBSP.repeat(10)
+const PX_PER_SEC = 90
+
+// CSS keyframe animation — runs on compositor thread, reliable on TV browsers
+const TICKER_KEYFRAMES = `
+  @keyframes ticker-scroll {
+    from { transform: translateX(-50%); }
+    to   { transform: translateX(0%);   }
+  }
+`
 
 export default function NewsTicker() {
-  const headlines = useNewsTicker()
-  const spanRef = useRef(null)
-  const [duration, setDuration] = useState(0)
+  const headlines   = useNewsTicker()
+  const spanRef     = useRef(null)
+  const [duration, setDuration] = useState(null)
+  const retryRef    = useRef(null)
 
-  const text = headlines.length
+  // Items are HTML strings (market items have color spans; headlines are escaped text)
+  const singleHtml = headlines.length
     ? headlines.join(SEPARATOR) + SEPARATOR
-    : 'טוען חדשות…'
+    : 'טוען חדשות…' + SEPARATOR
+
+  // Double the HTML so the loop is seamless — no blank gap between repetitions
+  const loopHtml = singleHtml + singleHtml
 
   useEffect(() => {
-    if (!spanRef.current) return
-    const id = requestAnimationFrame(() => {
-      const w = spanRef.current?.scrollWidth ?? 0
-      if (w > 0) setDuration((w + window.innerWidth) / PX_PER_SEC)
-    })
-    return () => cancelAnimationFrame(id)
-  }, [text])
+    const span = spanRef.current
+    if (!span) return
+
+    setDuration(null)
+    if (retryRef.current) { clearTimeout(retryRef.current); retryRef.current = null }
+
+    function measure() {
+      const w = span.scrollWidth / 2
+      if (w > 0) {
+        setDuration(w / PX_PER_SEC)
+      } else {
+        // TV browsers may need extra time for layout — retry up to a few times
+        retryRef.current = setTimeout(measure, 250)
+      }
+    }
+
+    // One rAF to let the browser render, then measure
+    const rafId = requestAnimationFrame(measure)
+
+    function onResize() {
+      const w = spanRef.current?.scrollWidth / 2
+      if (w > 0) setDuration(w / PX_PER_SEC)
+    }
+    window.addEventListener('resize', onResize)
+
+    return () => {
+      cancelAnimationFrame(rafId)
+      if (retryRef.current) clearTimeout(retryRef.current)
+      window.removeEventListener('resize', onResize)
+    }
+  }, [loopHtml])
 
   return (
     <footer style={{
@@ -33,13 +71,16 @@ export default function NewsTicker() {
       overflow: 'hidden',
       flexShrink: 0,
     }}>
+      <style>{TICKER_KEYFRAMES}</style>
+
+      {/* Label */}
       <div style={{
         flexShrink: 0,
         background: 'var(--color-accent)',
         color: '#ffffff',
-        fontWeight: 800,
-        fontSize: '1.1rem',
-        padding: '0 1.5rem',
+        fontWeight: 900,
+        fontSize: '1.4rem',
+        padding: '0 1.8rem',
         height: '100%',
         display: 'flex',
         alignItems: 'center',
@@ -50,33 +91,33 @@ export default function NewsTicker() {
         חדשות
       </div>
 
-      <div style={{ flex: 1, overflow: 'hidden', height: '100%', display: 'flex', alignItems: 'center', position: 'relative' }}>
+      {/* Scrolling text */}
+      <div style={{
+        flex: 1,
+        overflow: 'hidden',
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        position: 'relative',
+      }}>
         <span
           ref={spanRef}
+          dangerouslySetInnerHTML={{ __html: loopHtml }}
           style={{
             display: 'inline-block',
             whiteSpace: 'nowrap',
             color: '#ffffff',
-            fontSize: '1.3rem',
+            fontSize: '1.55rem',
             fontWeight: 500,
             willChange: 'transform',
             position: 'absolute',
             left: 0,
-            ...(duration > 0 && {
-              animation: `news-ticker ${duration}s linear infinite`,
-            }),
+            // Show only once duration is measured; CSS animation handles all movement
+            visibility: duration ? 'visible' : 'hidden',
+            animation: duration ? `ticker-scroll ${duration}s linear infinite` : 'none',
           }}
-        >
-          {text}
-        </span>
+        />
       </div>
-
-      <style>{`
-        @keyframes news-ticker {
-          from { transform: translateX(-100%); }
-          to   { transform: translateX(100vw); }
-        }
-      `}</style>
     </footer>
   )
 }

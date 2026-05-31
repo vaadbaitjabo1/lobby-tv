@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import ClockDate from './components/ClockDate'
 import Weather from './components/Weather'
 import NewsTicker from './components/NewsTicker'
@@ -8,7 +9,9 @@ import FeaturedCard from './components/FeaturedCard'
 import ShabbatPanel from './components/ShabbatPanel'
 import BusinessPromo from './components/BusinessPromo'
 import QRBox from './components/QRBox'
-import { useShabbat } from './hooks/useShabbat'
+import { useShabbat } from './contexts/ShabbatContext'
+import { SettingsProvider } from './contexts/SettingsContext'
+import { ShabbatProvider } from './contexts/ShabbatContext'
 
 const CELL = {
   borderRadius: '0.8rem',
@@ -20,9 +23,11 @@ const CELL = {
   minHeight: 0,
 }
 
-export default function App() {
+// ─── Inner component — must live inside ShabbatProvider ──────────────────────
+function AppContent({ tvMode }) {
   const { show } = useShabbat()
-  const previewMode = new URLSearchParams(window.location.search).has('preview')
+  const hashSearch  = window.location.hash.includes('?') ? window.location.hash.split('?')[1] : ''
+  const previewMode = new URLSearchParams(hashSearch).has('preview')
 
   return (
     <div style={{
@@ -110,7 +115,7 @@ export default function App() {
             <div style={{ ...CELL, flex: 1 }}>
               {show && !previewMode ? <ShabbatPanel /> : <BusinessPromo />}
             </div>
-            <div style={{ ...CELL, flexShrink: 0 }}>
+            <div style={{ ...CELL, flexShrink: 0, minHeight: '220px' }}>
               <QRBox />
             </div>
           </div>
@@ -121,5 +126,33 @@ export default function App() {
       {/* ── פס חדשות ── */}
       <NewsTicker />
     </div>
+  )
+}
+
+// ─── Root — injects global no-cursor CSS when in TV mode ─────────────────────
+export default function App({ tvMode = false }) {
+  useEffect(() => {
+    if (!tvMode) return
+    // Set directly on root elements (most reliable for TV browsers)
+    document.documentElement.style.cursor = 'none'
+    document.body.style.cursor = 'none'
+    // Also inject a stylesheet for full coverage
+    const style = document.createElement('style')
+    style.id = 'tv-no-cursor'
+    style.textContent = 'html, body, *, *::before, *::after { cursor: none !important; }'
+    document.head.appendChild(style)
+    return () => {
+      document.documentElement.style.cursor = ''
+      document.body.style.cursor = ''
+      document.getElementById('tv-no-cursor')?.remove()
+    }
+  }, [tvMode])
+
+  return (
+    <SettingsProvider>
+      <ShabbatProvider>
+        <AppContent tvMode={tvMode} />
+      </ShabbatProvider>
+    </SettingsProvider>
   )
 }

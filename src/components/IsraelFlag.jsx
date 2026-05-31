@@ -1,7 +1,7 @@
 export default function IsraelFlag({ compact, stretch }) {
   return (
     <img
-      src="/lobby-tv/flag2.gif"
+      src="/flag2.gif"
       alt="דגל ישראל"
       style={{
         height: stretch ? '100%' : compact ? '3.5rem' : '100px',

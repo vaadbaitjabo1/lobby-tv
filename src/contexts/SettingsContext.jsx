@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
-export function useSettings() {
+const SettingsContext = createContext({})
+
+export function SettingsProvider({ children }) {
   const [settings, setSettings] = useState({})
 
   useEffect(() => {
@@ -21,5 +23,9 @@ export function useSettings() {
     return () => { supabase.removeChannel(channel); clearInterval(poll) }
   }, [])
 
-  return settings
+  return <SettingsContext.Provider value={settings}>{children}</SettingsContext.Provider>
+}
+
+export function useSettings() {
+  return useContext(SettingsContext)
 }

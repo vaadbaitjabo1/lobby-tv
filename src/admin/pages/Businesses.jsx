@@ -3,8 +3,26 @@ import { supabase } from '../../lib/supabase'
 import { AdminCard, Field, Btn, Toggle, EmptyState } from '../AdminUI'
 
 const BUCKET = 'business-images'
-
 const EMPTY_FORM = { name: '', description: '', phone: '', active: true }
+
+// המר כל תמונה ל-JPEG דחוס לפני העלאה — פותר HEIC ותמונות כבדות מאייפון
+function compressToJpeg(file, maxWidth = 1400, quality = 0.88) {
+  return new Promise(resolve => {
+    const img = new Image()
+    const blobUrl = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(blobUrl)
+      let { width, height } = img
+      if (width > maxWidth) { height = Math.round(height * maxWidth / width); width = maxWidth }
+      const canvas = document.createElement('canvas')
+      canvas.width = width; canvas.height = height
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height)
+      canvas.toBlob(blob => resolve(new File([blob], 'image.jpg', { type: 'image/jpeg' })), 'image/jpeg', quality)
+    }
+    img.onerror = () => { URL.revokeObjectURL(blobUrl); resolve(file) }
+    img.src = blobUrl
+  })
+}
 
 export default function Businesses() {
   const [items, setItems]     = useState([])
@@ -41,12 +59,15 @@ export default function Businesses() {
   }
 
   async function uploadImage(id) {
-    const ext  = imageFile.name.split('.').pop().toLowerCase()
-    const path = `${id}.${ext}`
-    const { error } = await supabase.storage.from(BUCKET).upload(path, imageFile, { upsert: true })
+    const compressed = await compressToJpeg(imageFile)
+    const path = `${id}.jpg`
+    const { error } = await supabase.storage.from(BUCKET).upload(path, compressed, {
+      upsert: true, contentType: 'image/jpeg',
+    })
     if (error) throw new Error('העלאת תמונה נכשלה: ' + error.message)
     const { data } = supabase.storage.from(BUCKET).getPublicUrl(path)
-    return data.publicUrl
+    // cache-bust כדי שהתמונה החדשה תוצג מיד
+    return data.publicUrl + '?t=' + Date.now()
   }
 
   async function save() {
@@ -88,10 +109,18 @@ export default function Businesses() {
   async function remove(item) {
     if (!confirm(`למחוק את "${item.name}"?`)) return
     if (item.image_url) {
-      const path = item.image_url.split('/').slice(-1)[0]
-      await supabase.storage.from(BUCKET).remove([path])
+      try {
+        // חלץ את הנתיב בתוך ה-bucket מה-URL (הכל אחרי /business-images/)
+        const url      = new URL(item.image_url)
+        const segments = url.pathname.split(`/${BUCKET}/`)
+        if (segments.length > 1) {
+          const storagePath = segments[1].split('?')[0]
+          await supabase.storage.from(BUCKET).remove([storagePath])
+        }
+      } catch { /* המשך למחיקת שורת DB גם אם מחיקת התמונה נכשלה */ }
     }
-    await supabase.from('businesses').delete().eq('id', item.id)
+    const { error } = await supabase.from('businesses').delete().eq('id', item.id)
+    if (error) { alert('שגיאה במחיקה: ' + error.message); return }
     load()
   }
 
@@ -110,38 +139,24 @@ export default function Businesses() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const previewSrc = imagePreview
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
-      {/* טופס */}
       <AdminCard title={editing ? 'עריכת עסק / שירות' : 'עסק / שירות חדש'}>
         <Field label="שם נותן השירות">
-          <input
-            value={form.name}
-            onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-            placeholder="לדוגמה: אינסטלטור אבי כהן"
-          />
+          <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+            placeholder="לדוגמה: אינסטלטור אבי כהן" />
         </Field>
         <Field label="תיאור השירות">
-          <textarea
-            rows={2}
-            value={form.description}
+          <textarea rows={2} value={form.description}
             onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-            placeholder="תיאור קצר של השירות..."
-          />
+            placeholder="תיאור קצר של השירות..." />
         </Field>
         <Field label="מספר טלפון">
-          <input
-            value={form.phone}
-            onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-            placeholder="050-0000000"
-            style={{ direction: 'ltr', textAlign: 'right' }}
-          />
+          <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+            placeholder="050-0000000" style={{ direction: 'ltr', textAlign: 'right' }} />
         </Field>
 
-        {/* העלאת תמונה */}
         <Field label="תמונה / גרפיקה">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
             <label style={{
@@ -152,32 +167,12 @@ export default function Businesses() {
               width: 'fit-content',
             }}>
               📁 בחר תמונה
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                onChange={pickImage}
-                style={{ display: 'none' }}
-              />
+              <input ref={fileRef} type="file" accept="image/*" onChange={pickImage} style={{ display: 'none' }} />
             </label>
-            {previewSrc && (
+            {imagePreview && (
               <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                <img
-                  src={previewSrc}
-                  alt=""
-                  style={{
-                    width: '80px', height: '80px', objectFit: 'cover',
-                    borderRadius: '8px', border: '1px solid #e5e7eb',
-                  }}
-                />
-                <button
-                  onClick={clearImage}
-                  style={{
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    color: '#c53030', fontSize: '1.1rem', lineHeight: 1,
-                  }}
-                  title="הסר תמונה"
-                >✕</button>
+                <img src={imagePreview} alt="" style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e5e7eb' }} />
+                <button onClick={clearImage} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#c53030', fontSize: '1.1rem', lineHeight: 1 }} title="הסר תמונה">✕</button>
               </div>
             )}
           </div>
@@ -200,40 +195,20 @@ export default function Businesses() {
         </div>
       </AdminCard>
 
-      {/* רשימה */}
       {items.length === 0 ? (
         <EmptyState>אין עסקים / שירותים עדיין</EmptyState>
       ) : items.map(item => (
         <AdminCard key={item.id}>
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
             {item.image_url ? (
-              <img
-                src={item.image_url}
-                alt=""
-                style={{
-                  width: '64px', height: '64px', objectFit: 'cover',
-                  borderRadius: '8px', flexShrink: 0, border: '1px solid #e5e7eb',
-                }}
-              />
+              <img src={item.image_url} alt="" style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '8px', flexShrink: 0, border: '1px solid #e5e7eb' }} />
             ) : (
-              <div style={{
-                width: '64px', height: '64px', borderRadius: '8px',
-                background: '#ecfdf5', display: 'flex', alignItems: 'center',
-                justifyContent: 'center', flexShrink: 0, fontSize: '1.8rem',
-              }}>🏢</div>
+              <div style={{ width: '64px', height: '64px', borderRadius: '8px', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '1.8rem' }}>🏢</div>
             )}
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 700, fontSize: '1rem', color: '#1e2330' }}>{item.name}</div>
-              {item.description && (
-                <div style={{ fontSize: '0.85rem', color: '#8890a4', marginTop: '0.15rem' }}>
-                  {item.description}
-                </div>
-              )}
-              {item.phone && (
-                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#3d4356', marginTop: '0.15rem', direction: 'ltr', textAlign: 'right' }}>
-                  {item.phone}
-                </div>
-              )}
+              {item.description && <div style={{ fontSize: '0.85rem', color: '#8890a4', marginTop: '0.15rem' }}>{item.description}</div>}
+              {item.phone && <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#3d4356', marginTop: '0.15rem', direction: 'ltr', textAlign: 'right' }}>{item.phone}</div>}
             </div>
             <Toggle value={item.active} onChange={v => toggleActive(item.id, v)} />
           </div>

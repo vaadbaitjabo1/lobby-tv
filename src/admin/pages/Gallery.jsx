@@ -9,8 +9,9 @@ export default function Gallery() {
   const [form, setForm]       = useState(empty)
   const [editing, setEditing] = useState(null)
   const [saving, setSaving]   = useState(false)
+  const [saveErr, setSaveErr] = useState('')
   const [uploading, setUploading] = useState(false)
-  const [inputMode, setInputMode] = useState('url') // 'url' | 'upload'
+  const [inputMode, setInputMode] = useState('url')
   const fileRef = useRef()
 
   async function load() {
@@ -31,20 +32,39 @@ export default function Gallery() {
   }
 
   async function save() {
-    setSaving(true)
+    setSaving(true); setSaveErr('')
     const payload = { ...form, sort_order: Number(form.sort_order) }
-    if (editing) await supabase.from('gallery').update(payload).eq('id', editing)
-    else         await supabase.from('gallery').insert(payload)
-    setForm(empty); setEditing(null); setSaving(false); load()
+    const { error } = editing
+      ? await supabase.from('gallery').update(payload).eq('id', editing)
+      : await supabase.from('gallery').insert(payload)
+    setSaving(false)
+    if (error) { setSaveErr('שגיאה בשמירה: ' + error.message); return }
+    setForm(empty); setEditing(null); load()
   }
 
   async function remove(id) {
     if (!confirm('למחוק פריט זה?')) return
-    await supabase.from('gallery').delete().eq('id', id); load()
+    const { error } = await supabase.from('gallery').delete().eq('id', id)
+    if (error) { alert('שגיאה במחיקה: ' + error.message); return }
+    load()
   }
 
   async function toggleActive(id, val) {
     await supabase.from('gallery').update({ active: val }).eq('id', id); load()
+  }
+
+  async function moveItem(itemId, direction) {
+    const sorted = [...items].sort((a, b) => a.sort_order - b.sort_order)
+    const idx = sorted.findIndex(i => i.id === itemId)
+    const newIdx = idx + direction
+    if (newIdx < 0 || newIdx >= sorted.length) return
+    const reordered = [...sorted]
+    const [removed] = reordered.splice(idx, 1)
+    reordered.splice(newIdx, 0, removed)
+    await Promise.all(reordered.map((item, i) =>
+      supabase.from('gallery').update({ sort_order: i * 10 }).eq('id', item.id)
+    ))
+    load()
   }
 
   function startEdit(item) {
@@ -58,7 +78,6 @@ export default function Gallery() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <AdminCard title={editing ? 'עריכת פריט' : 'פריט חדש לגלריה'}>
 
-        {/* בחירת מצב הכנסה */}
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.25rem' }}>
           {[['url', 'קישור URL'], ['upload', 'העלאת קובץ']].map(([mode, label]) => (
             <button key={mode} onClick={() => setInputMode(mode)} style={{
@@ -79,7 +98,6 @@ export default function Gallery() {
               placeholder="https://..." style={{ direction: 'ltr', textAlign: 'left' }} />
           </Field>
         ) : (
-          // הערה: אין Field כאן כדי למנוע double-trigger מ-label
           <div>
             <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#3d4356', display: 'block', marginBottom: '0.3rem' }}>בחר קובץ</span>
             <input
@@ -107,7 +125,6 @@ export default function Gallery() {
           </div>
         )}
 
-        {/* preview */}
         {form.url && (
           form.type === 'image'
             ? <img src={form.url} alt="preview" style={{ maxHeight: '140px', objectFit: 'contain', borderRadius: '8px', border: '1px solid #e5e7eb' }} onError={e => e.target.style.display='none'} />
@@ -126,6 +143,7 @@ export default function Gallery() {
           <Toggle value={form.active} onChange={v => setForm(f => ({ ...f, active: v }))} />
         </Field>
 
+        {saveErr && <p style={{ margin: 0, color: '#c53030', fontSize: '0.85rem', background: '#fff5f5', borderRadius: '6px', padding: '0.4rem 0.7rem' }}>⚠️ {saveErr}</p>}
         <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
           <Btn onClick={save} disabled={!form.url || saving || uploading} primary>
             {saving ? 'שומר…' : editing ? 'עדכן' : 'הוסף'}
@@ -146,7 +164,9 @@ export default function Gallery() {
                 {item.caption || '(ללא כיתוב)'}
               </div>
               <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', gap: '0.4rem' }}>
+                <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                  <Btn onClick={() => moveItem(item.id, -1)}>▲</Btn>
+                  <Btn onClick={() => moveItem(item.id, +1)}>▼</Btn>
                   <Btn onClick={() => startEdit(item)}>עריכה</Btn>
                   <Btn onClick={() => remove(item.id)} danger>מחיקה</Btn>
                 </div>

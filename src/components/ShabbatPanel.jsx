@@ -1,4 +1,4 @@
-import { useShabbat } from '../hooks/useShabbat'
+import { useShabbat } from '../contexts/ShabbatContext'
 
 const PARASHA_DESC = {
   'בראשית':       'בריאת העולם בששה ימים ומנוחת השבת. גן עדן, חטא אדם וחוה, גירוש מגן עדן, קין והבל.',
@@ -63,12 +63,11 @@ const PARASHA_DESC = {
   'וזאת הברכה': 'ברכת משה לשנים עשר השבטים. משה עולה על הר נבו ורואה את הארץ ונפטר.',
 }
 
-// U+05BE = מקף עברי (maqaf). מנקה ניקוד, מקף עברי ו"פרשת"
 function normalizeParasha(s) {
   return (s ?? '')
-    .replace(/־/g, ' ')           // מקף עברי → רווח
-    .replace(/[֑-ֽֿ-ׇ]/g, '')  // ניקוד
-    .replace(/^פרשת\s+/u, '')          // הסרת קידומת
+    .replace(/־/g, ' ')
+    .replace(/[֑-ֽֿ-ׇ]/g, '')
+    .replace(/^פרשת\s+/u, '')
     .replace(/\s+/g, ' ')
     .trim()
 }
@@ -76,7 +75,7 @@ function normalizeParasha(s) {
 function getDesc(parasha) {
   const key = normalizeParasha(parasha)
   return PARASHA_DESC[key]
-    ?? PARASHA_DESC[key.replace(/\s.*/, '').trim()]  // רק מילה ראשונה (בהר מתוך "בהר בחקתי")
+    ?? PARASHA_DESC[key.replace(/\s.*/, '').trim()]
     ?? null
 }
 
@@ -101,15 +100,6 @@ function Candle() {
         <div style={{ position: 'absolute', top: '-5px', left: '50%', transform: 'translateX(-50%)', width: '3px', height: '8px', background: '#78716c', borderRadius: '1px' }} />
       </div>
       <div style={{ width: '34px', height: '8px', background: 'linear-gradient(to left, #cbd5e1, #f8fafc, #cbd5e1)', borderRadius: '0 0 4px 4px' }} />
-      <style>{`
-        @keyframes flicker {
-          0%,100% { transform: scaleX(1) scaleY(1) rotate(-1deg); }
-          20%      { transform: scaleX(0.88) scaleY(1.07) rotate(1.5deg); }
-          40%      { transform: scaleX(1.07) scaleY(0.93) rotate(-2deg); }
-          60%      { transform: scaleX(0.92) scaleY(1.05) rotate(1deg); }
-          80%      { transform: scaleX(1.05) scaleY(0.97) rotate(-0.5deg); }
-        }
-      `}</style>
     </div>
   )
 }
@@ -121,7 +111,6 @@ export default function ShabbatPanel() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', background: '#fff', height: '100%', overflow: 'hidden' }}>
-      {/* כותרת — תכלת/טורקיז */}
       <div style={{
         background: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 100%)',
         padding: '0.55rem 1.1rem',
@@ -132,10 +121,8 @@ export default function ShabbatPanel() {
         <span style={{ fontSize: '1.2rem' }}>✡️</span>
       </div>
 
-      {/* גוף — אנכי: זמנים למעלה, פרשה למטה */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
 
-        {/* חלק עליון — נרות + זמנים (50% מגובה הפאנל) */}
         <div style={{
           background: 'linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%)',
           flex: '0 0 50%',
@@ -160,7 +147,6 @@ export default function ShabbatPanel() {
           </div>
         </div>
 
-        {/* חלק תחתון — פרשת השבוע */}
         <div style={{
           flex: 1, background: '#f0f9ff',
           padding: '0.8rem 1rem',
