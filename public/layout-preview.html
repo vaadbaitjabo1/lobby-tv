@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #e8eef8;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    gap: 28px;
+    padding: 28px;
+  }
+
+  .screens-row { display: flex; gap: 28px; align-items: flex-start; }
+  .screen-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .screen-label { font-size: 0.82rem; font-weight: 700; color: #0d2d6b; background: #dbeafe; padding: 4px 12px; border-radius: 20px; }
+
+  .screen {
+    width: 720px;
+    height: 405px;
+    display: flex;
+    flex-direction: column;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.28);
+    background: #fff;
+  }
+
+  /* Header */
+  .top-hdr {
+    background: #0d2d6b;
+    padding: 0 22px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+    border-bottom: 1px solid rgba(255,255,255,0.13);
+  }
+  .clock { font-size: 2.6rem; font-weight: 800; color: #fff; line-height: 1; }
+  .divider { width: 1px; height: 3rem; background: rgba(255,255,255,0.2); margin: 0 4px; }
+
+  /* 3-col grid */
+  .content {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr 0.8fr;
+    gap: 10px;
+    padding: 10px;
+    min-height: 0;
+    background: #fff;
+  }
+
+  .col { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+
+  /* cells */
+  .cell {
+    border-radius: 10px;
+    border: 1px solid rgba(13,45,107,0.1);
+    box-shadow: 0 2px 8px rgba(13,45,107,0.07);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+  }
+  .cell-hdr {
+    padding: 8px 13px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  /* Gallery */
+  .gallery-ph {
+    flex: 1;
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 60%, #c7d2fe 100%);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 10px; color: #1e40af;
+    font-size: 0.88rem; font-weight: 600;
+  }
+
+  /* Announcements */
+  .ann-row {
+    padding: 8px 13px;
+    border-bottom: 1px solid #f0f4ff;
+    font-size: 0.8rem; color: #1e3a5f; line-height: 1.45;
+  }
+  .ann-row:last-child { border-bottom: none; }
+  .ann-row strong { display: block; font-size: 0.84rem; color: #0d2d6b; margin-bottom: 1px; }
+
+  /* Featured sport */
+  .feat-img {
+    height: 100px;
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 3rem; flex-shrink: 0;
+  }
+  .feat-body { flex: 1; padding: 9px 13px; display: flex; flex-direction: column; gap: 5px; overflow: hidden; }
+  .feat-src { font-size: 0.68rem; font-weight: 700; color: #b91c1c; text-transform: uppercase; letter-spacing: 0.05em; }
+  .feat-title { font-size: 0.9rem; font-weight: 700; color: #0d2d6b; line-height: 1.35; }
+  .feat-desc { font-size: 0.74rem; color: #4b6291; line-height: 1.5; overflow: hidden; }
+  .progress { height: 3px; background: #f0f0f0; flex-shrink: 0; }
+  .progress-fill { height: 100%; width: 55%; background: #b91c1c; }
+
+  /* Shabbat */
+  .shabbat-body {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 14px; gap: 7px;
+    background: linear-gradient(160deg, #fffbeb, #fef3c7);
+  }
+  .shabbat-row { display: flex; justify-content: space-between; width: 100%; font-size: 0.82rem; color: #92400e; padding: 2px 0; }
+
+  /* QR */
+  .qr-body {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 7px; background: #f8faff; padding: 10px;
+  }
+  .qr-sq {
+    width: 72px; height: 72px; background: #0d2d6b; border-radius: 7px;
+    display: grid; grid-template-columns: repeat(7,1fr); padding: 7px; gap: 2px;
+  }
+  .qr-sq span { background: #fff; border-radius: 1px; }
+  .qr-sq span.e { background: transparent; }
+
+  /* Ticker */
+  .ticker {
+    height: 42px; background: #0d2d6b;
+    display: flex; align-items: center;
+    overflow: hidden; flex-shrink: 0;
+    border-top: 2px solid rgba(255,255,255,0.1);
+  }
+  .ticker-lbl { background: #1a56db; color: #fff; padding: 0 16px; height: 100%; display: flex; align-items: center; font-weight: 800; font-size: 0.92rem; flex-shrink: 0; }
+  .ticker-txt { color: rgba(255,255,255,.9); font-size: 0.88rem; padding: 0 18px; white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="screens-row">
+
+<!-- מסך 1: 4 הודעות -->
+<div class="screen-wrap">
+  <div class="screen-label">4 הודעות — פיד קטן יותר</div>
+  <div class="screen">
+
+  <!-- Header -->
+  <div class="top-hdr">
+    <span style="font-size:1.7rem">🇮🇱</span>
+    <div>
+      <div style="font-size:.65rem;color:rgba(255,255,255,.5);letter-spacing:.12em;text-transform:uppercase">ברוכים הבאים</div>
+      <div style="font-size:1.35rem;font-weight:800;color:#fff">ז׳בוטינסקי 1, אזור</div>
+    </div>
+    <div style="flex:1"></div>
+    <div style="text-align:right">
+      <div class="clock">13:09</div>
+      <div style="font-size:.7rem;color:#93c5fd">יום שבת · 9 במאי 2026</div>
+      <div style="font-size:.63rem;color:rgba(255,255,255,.45)">כ״א אייר תשפ״ו</div>
+    </div>
+    <div class="divider"></div>
+    <div style="display:flex;align-items:center;gap:7px">
+      <span style="font-size:2.4rem">☀️</span>
+      <div>
+        <div style="font-size:1.7rem;font-weight:700;color:#fff;line-height:1">25°</div>
+        <div style="font-size:.67rem;color:rgba(255,255,255,.55)">שמיים בהירים</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3 columns -->
+  <div class="content">
+
+    <!-- ימין: גלריה -->
+    <div class="col">
+      <div class="cell" style="flex:1">
+        <div class="cell-hdr" style="background:#1a56db">📸 גלריה</div>
+        <div class="gallery-ph">
+          <span style="font-size:3.2rem">🖼️</span>
+          <span>תמונות הבניין</span>
+          <span style="font-size:0.72rem;opacity:0.7;font-weight:400">מתחלפות אוטומטית</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- אמצע: הודעות (content-sized) + פיד ספורט (flex:1) -->
+    <div class="col">
+      <div class="cell" style="flex-shrink:0">
+        <div class="cell-hdr" style="background:#92400e">📋 הודעות לדיירים</div>
+        <div class="ann-row"><strong>ניקיון חדר מדרגות</strong>יום שני 11/5 בין 09:00–12:00 בכל הקומות</div>
+        <div class="ann-row"><strong>ישיבת ועד — תזכורת</strong>יום ג׳ 12/5 בשעה 20:00 בלובי הבניין</div>
+        <div class="ann-row"><strong>בניין מצולם בשטחים</strong>נא לשמור על הסדר מול המצלמות</div>
+        <div class="ann-row"><strong>דירות שלא הסדירו תשלום</strong>נא לפנות לניהול בהקדם</div>
+      </div>
+      <div class="cell" style="flex:1">
+        <div class="cell-hdr" style="background:#b91c1c">⚽🏀 ynet ספורט</div>
+        <div class="feat-img">⚽</div>
+        <div class="feat-body">
+          <div class="feat-src">ynet ספורט</div>
+          <div class="feat-title">מחציות: פאלאס – שטאר 1:1</div>
+          <div class="feat-desc">גומליני חצי גמר קונפרנס ליג: הנגשרו עלו ליתרון מישנר עצמי, אנגולאדו החזיר את האוקראינים למשחק</div>
+        </div>
+        <div class="progress"><div class="progress-fill"></div></div>
+      </div>
+    </div>
+
+    <!-- שמאל: שבת/עסקים + QR -->
+    <div class="col">
+      <div class="cell" style="flex:1">
+        <div class="cell-hdr" style="background:#0f766e">✡️ שבת שלום</div>
+        <div class="shabbat-body">
+          <span style="font-size:2rem">🕯️🕯️</span>
+          <div style="font-size:1rem;font-weight:800;color:#92400e">✨ שבת שלום ✨</div>
+          <div style="font-size:0.8rem;color:#78350f;font-weight:600">פרשת בהר בחקתי</div>
+          <div style="width:100%;border-top:1px solid rgba(146,64,14,0.2);margin:4px 0"></div>
+          <div class="shabbat-row"><span>הדלקת נרות</span><span style="font-weight:700">19:30</span></div>
+          <div class="shabbat-row"><span>צאת שבת</span><span style="font-weight:700">20:38</span></div>
+        </div>
+      </div>
+      <div class="cell" style="flex-shrink:0;height:130px">
+        <div class="cell-hdr" style="background:#0d2d6b">📱 קוד QR</div>
+        <div class="qr-body">
+          <div class="qr-sq">
+            <span></span><span></span><span></span><span class="e"></span><span></span><span></span><span></span>
+            <span></span><span class="e"></span><span></span><span></span><span></span><span class="e"></span><span></span>
+            <span class="e"></span><span></span><span class="e"></span><span></span><span class="e"></span><span></span><span class="e"></span>
+            <span></span><span class="e"></span><span></span><span class="e"></span><span></span><span class="e"></span><span></span>
+            <span></span><span></span><span class="e"></span><span></span><span class="e"></span><span></span><span></span>
+          </div>
+          <div style="font-size:0.7rem;color:#4b6291;text-align:center;line-height:1.4">סרוק לקישור הבניין</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Ticker -->
+  <div class="ticker">
+    <div class="ticker-lbl">חדשות</div>
+    <div class="ticker-txt">◆ ממשלת ישראל אישרה את הסכם החטופים ◆ מזג האוויר: שבוע חם בצפון הארץ</div>
+  </div>
+</div><!-- /screen -->
+</div><!-- /screen-wrap -->
+
+<!-- מסך 2: 2 הודעות -->
+<div class="screen-wrap">
+  <div class="screen-label">2 הודעות — פיד גדול</div>
+  <div class="screen">
+    <div class="top-hdr">
+      <span style="font-size:1.7rem">🇮🇱</span>
+      <div>
+        <div style="font-size:.65rem;color:rgba(255,255,255,.5);letter-spacing:.12em;text-transform:uppercase">ברוכים הבאים</div>
+        <div style="font-size:1.35rem;font-weight:800;color:#fff">ז׳בוטינסקי 1, אזור</div>
+      </div>
+      <div style="flex:1"></div>
+      <div style="text-align:right">
+        <div class="clock">13:09</div>
+        <div style="font-size:.7rem;color:#93c5fd">יום שבת · 9 במאי 2026</div>
+        <div style="font-size:.63rem;color:rgba(255,255,255,.45)">כ״א אייר תשפ״ו</div>
+      </div>
+      <div class="divider"></div>
+      <div style="display:flex;align-items:center;gap:7px">
+        <span style="font-size:2.4rem">☀️</span>
+        <div>
+          <div style="font-size:1.7rem;font-weight:700;color:#fff;line-height:1">25°</div>
+          <div style="font-size:.67rem;color:rgba(255,255,255,.55)">שמיים בהירים</div>
+        </div>
+      </div>
+    </div>
+    <div class="content">
+      <!-- ימין: גלריה -->
+      <div class="col">
+        <div class="cell" style="flex:1">
+          <div class="cell-hdr" style="background:#1a56db">📸 גלריה</div>
+          <div class="gallery-ph">
+            <span style="font-size:3.2rem">🖼️</span>
+            <span>תמונות הבניין</span>
+            <span style="font-size:0.72rem;opacity:0.7;font-weight:400">מתחלפות אוטומטית</span>
+          </div>
+        </div>
+      </div>
+      <!-- אמצע: 2 הודעות בלבד → פיד גדל -->
+      <div class="col">
+        <div class="cell" style="flex-shrink:0">
+          <div class="cell-hdr" style="background:#92400e">📋 הודעות לדיירים</div>
+          <div class="ann-row"><strong>ניקיון חדר מדרגות</strong>יום שני 11/5 בין 09:00–12:00 בכל הקומות</div>
+          <div class="ann-row"><strong>ישיבת ועד — תזכורת</strong>יום ג׳ 12/5 בשעה 20:00 בלובי הבניין</div>
+        </div>
+        <div class="cell" style="flex:1">
+          <div class="cell-hdr" style="background:#b91c1c">⚽🏀 ynet ספורט</div>
+          <div class="feat-img" style="height:140px;font-size:4rem">⚽</div>
+          <div class="feat-body">
+            <div class="feat-src">ynet ספורט</div>
+            <div class="feat-title" style="font-size:1rem">מחציות: פאלאס – שטאר 1:1</div>
+            <div class="feat-desc">גומליני חצי גמר קונפרנס ליג: הנגשרו עלו ליתרון מישנר עצמי, אנגולאדו החזיר את האוקראינים למשחק. במקביל: שטראסבורג - ראאו 1:0</div>
+          </div>
+          <div class="progress"><div class="progress-fill"></div></div>
+        </div>
+      </div>
+      <!-- שמאל: שבת + QR -->
+      <div class="col">
+        <div class="cell" style="flex:1">
+          <div class="cell-hdr" style="background:#0f766e">✡️ שבת שלום</div>
+          <div class="shabbat-body">
+            <span style="font-size:2rem">🕯️🕯️</span>
+            <div style="font-size:1rem;font-weight:800;color:#92400e">✨ שבת שלום ✨</div>
+            <div style="font-size:0.8rem;color:#78350f;font-weight:600">פרשת בהר בחקתי</div>
+            <div style="width:100%;border-top:1px solid rgba(146,64,14,0.2);margin:4px 0"></div>
+            <div class="shabbat-row"><span>הדלקת נרות</span><span style="font-weight:700">19:30</span></div>
+            <div class="shabbat-row"><span>צאת שבת</span><span style="font-weight:700">20:38</span></div>
+          </div>
+        </div>
+        <div class="cell" style="flex-shrink:0;height:130px">
+          <div class="cell-hdr" style="background:#0d2d6b">📱 קוד QR</div>
+          <div class="qr-body">
+            <div class="qr-sq">
+              <span></span><span></span><span></span><span class="e"></span><span></span><span></span><span></span>
+              <span></span><span class="e"></span><span></span><span></span><span></span><span class="e"></span><span></span>
+              <span class="e"></span><span></span><span class="e"></span><span></span><span class="e"></span><span></span><span class="e"></span>
+              <span></span><span class="e"></span><span></span><span class="e"></span><span></span><span class="e"></span><span></span>
+              <span></span><span></span><span class="e"></span><span></span><span class="e"></span><span></span><span></span>
+            </div>
+            <div style="font-size:0.7rem;color:#4b6291;text-align:center;line-height:1.4">סרוק לקישור הבניין</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ticker">
+      <div class="ticker-lbl">חדשות</div>
+      <div class="ticker-txt">◆ ממשלת ישראל אישרה את הסכם החטופים ◆ מזג האוויר: שבוע חם בצפון הארץ</div>
+    </div>
+  </div><!-- /screen -->
+</div><!-- /screen-wrap -->
+
+</div><!-- /screens-row -->
+</body>
+</html>

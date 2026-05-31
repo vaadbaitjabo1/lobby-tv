@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>דשבורד תשלומי ועד הבית</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+            background: #0d2d6b;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        .stats-grid {
+            display: none;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 9px;
+            margin-bottom: 9px;
+            flex-shrink: 0;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 14px 12px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+        }
+
+        .stat-card h3 {
+            color: #666;
+            font-size: 0.72em;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            line-height: 1.3;
+        }
+
+        .stat-value {
+            font-size: 1.9em;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+
+        .stat-value.green { color: #10b981; }
+        .stat-value.blue { color: #3b82f6; }
+        .stat-value.orange { color: #f59e0b; }
+        .stat-value.purple { color: #8b5cf6; }
+        .stat-value.red { color: #ef4444; }
+
+        .stat-label { color: #999; font-size: 0.85em; }
+
+        .upload-section { display: none; }
+        input[type=file] { display: none; }
+
+        .chart-container { display: none; }
+
+        .summary-table {
+            background: white;
+            border-radius: 12px;
+            padding: 10px 12px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+            display: none;
+            overflow: hidden;
+            margin-bottom: 0;
+        }
+
+        .summary-table h2 {
+            margin-bottom: 6px;
+            color: #333;
+            font-size: 0.95em;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f3f4f6;
+            padding: 5px 7px;
+            text-align: right;
+            border-bottom: 2px solid #ddd;
+            font-weight: 600;
+            font-size: 0.82em;
+        }
+
+        td {
+            padding: 4px 7px;
+            border-bottom: 1px solid #eee;
+            text-align: right;
+            font-size: 0.82em;
+        }
+
+        tr:hover { background: #f9fafb; }
+
+        .positive { color: #10b981; font-weight: bold; }
+        .negative { color: #ef4444; font-weight: bold; }
+
+        tfoot {
+            background: #f3f4f6;
+            font-weight: bold;
+        }
+
+        .breakdown {
+            background: white;
+            border-radius: 12px;
+            padding: 10px 12px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+        }
+
+        .breakdown h2 {
+            margin-bottom: 6px;
+            color: #333;
+            font-size: 0.95em;
+        }
+
+        .bottom-row { display: none; }
+
+        .pie-container {
+            background: white;
+            border-radius: 12px;
+            padding: 10px 12px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+        }
+
+        .pie-container h2 {
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 0.95em;
+        }
+
+        .category-item {
+            margin-bottom: 7px;
+        }
+
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3px;
+            font-size: 0.8em;
+        }
+
+        .category-name {
+            font-weight: 600;
+            color: #444;
+        }
+
+        .category-amount {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .category-percent {
+            font-size: 0.9em;
+            color: #999;
+            margin-right: 6px;
+        }
+
+        .category-bar-bg {
+            background: #f0f0f0;
+            border-radius: 6px;
+            height: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .category-bar-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.8s ease-out;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .breakdown-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 7px 4px;
+            border-bottom: 1px solid #eee;
+            font-size: 0.84em;
+            gap: 4px;
+        }
+
+        .breakdown-item:last-child { border-bottom: none; }
+
+        .breakdown-item > span:first-child {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .breakdown-value {
+            font-size: 1.1em;
+            font-weight: bold;
+            white-space: nowrap;
+            padding-right: 6px;
+        }
+
+        #mainGrid {
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+            gap: 10px;
+            align-items: stretch;
+            grid-template-rows: 1fr;
+        }
+
+        #mainGrid > * {
+            overflow: hidden;
+            min-height: 0;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Hidden file input for manual override -->
+        <input type="file" id="excelFile" accept=".xlsx,.xls" style="display:none;">
+
+
+        <div id="loadingMessage" style="text-align:center;color:white;font-size:1.1em;padding:30px;">
+            📊 טוען נתונים...
+            <br><br>
+            <small style="opacity:0.8;">לחץ לחיצה כפולה כדי לבחור קובץ ידנית</small>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>אחוז גבייה חודש נוכחי</h3>
+                <div class="stat-value green" id="collectionRate">--</div>
+                <div class="stat-label">מסך התשלומים הצפויים</div>
+            </div>
+
+            <div class="stat-card">
+                <h3>סכום שנגבה החודש</h3>
+                <div class="stat-value blue" id="collectedAmount">--</div>
+                <div class="stat-label">מתוך <span id="expectedAmount">--</span></div>
+            </div>
+
+            <div class="stat-card">
+                <h3>דירות ששילמו</h3>
+                <div class="stat-value green" id="paidApts">--</div>
+                <div class="stat-label">מתוך <span id="totalActiveApts">--</span> משלמות</div>
+            </div>
+
+            <div class="stat-card">
+                <h3>יתרה בחשבון הועד</h3>
+                <div class="stat-value purple" id="balance">₪0</div>
+                <div class="stat-label" id="balanceDate">נכון לתאריך --</div>
+            </div>
+
+            <div class="stat-card">
+                <h3>חובות נוכחיים</h3>
+                <div class="stat-value red" id="totalDebts">₪0</div>
+                <div class="stat-label">סה״כ חובות לועד</div>
+            </div>
+        </div>
+
+        <div id="mainGrid" style="display:none; grid-template-columns: 2fr 1fr;">
+
+            <div class="summary-table" style="display:block; margin-bottom:0;">
+                <h2>📊 סיכום פיננסי חודשי</h2>
+                <table id="summaryTable">
+                    <thead>
+                        <tr>
+                            <th>חודש</th>
+                            <th>הכנסות (₪)</th>
+                            <th>אחוז גבייה</th>
+                            <th>הוצאות (₪)</th>
+                            <th>מאזן (₪)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="summaryBody"></tbody>
+                    <tfoot id="summaryFooter"></tfoot>
+                </table>
+            </div>
+
+            <div class="pie-container" style="margin-bottom:0;">
+                <h2>💰 הוצאות לפי קטגוריה - 12 חודשים</h2>
+                <div id="expenseCategoryBars"></div>
+            </div>
+
+        </div>
+
+        <div style="text-align:center;color:rgba(255,255,255,0.6);margin-top:5px;font-size:0.75em;flex-shrink:0;">
+            עודכן: <span id="lastUpdate">--</span>
+        </div>
+    </div>
+
+    <script>
+        let chart = null;
+
+        // Disable datalabels by default globally
+        Chart.defaults.set('plugins.datalabels', {
+            display: false
+        });
+
+        // Double-click anywhere to manually select file
+        document.addEventListener('dblclick', function() {
+            document.getElementById('excelFile').click();
+        });
+
+        // טעינה אוטומטית של data.xlsx מאותה תיקייה
+        window.addEventListener('load', async function() {
+            try {
+                const resp = await fetch('./data.xlsx?t=' + Date.now())
+                if (!resp.ok) throw new Error('קובץ לא נמצא')
+                const buf  = await resp.arrayBuffer()
+                const wb   = XLSX.read(new Uint8Array(buf), { type: 'array' })
+                processExcelData(wb)
+            } catch (e) {
+                const loadingMsg = document.getElementById('loadingMessage')
+                if (loadingMsg) loadingMsg.innerHTML = `
+                    <div style="background:white;border-radius:15px;padding:30px;max-width:500px;margin:30px auto;box-shadow:0 10px 30px rgba(0,0,0,0.3);text-align:center;">
+                        <h2 style="color:#667eea;margin-bottom:16px;">📊 דשבורד ועד הבית</h2>
+                        <p style="color:#666;margin-bottom:20px;">לא נמצא קובץ נתונים.<br>שמור את קובץ האקסל בשם <b>data.xlsx</b> בתיקיית <b>public/</b></p>
+                        <button onclick="document.getElementById('excelFile').click()"
+                                style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;padding:12px 24px;border-radius:10px;font-size:1em;cursor:pointer;">
+                            📁 בחר קובץ ידנית
+                        </button>
+                    </div>`
+            }
+        });
+
+        document.getElementById('excelFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    processExcelData(workbook);
+                } catch (error) {
+                    alert('שגיאה בקריאת הקובץ: ' + error.message);
+                    console.error(error);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+
+            e.target.value = '';
+        });
+
+        function processExcelData(workbook) {
+            // Store workbook globally for pie chart access
+            window.currentWorkbook = workbook;
+
+            const calcSheet = workbook.Sheets['חישובים'];
+            const dataSheet = workbook.Sheets['נתוני_תשלומים'];
+            const settingsSheet = workbook.Sheets['הגדרות'];
+
+            if (!calcSheet || !dataSheet) {
+                alert('לא נמצאו גיליונות נדרשים');
+                return;
+            }
+
+            // Hide loading message and show content
+            const loadingMsg = document.getElementById('loadingMessage');
+            if (loadingMsg) loadingMsg.style.display = 'none';
+
+            document.querySelector('.stats-grid').style.display = 'grid';
+            document.getElementById('mainGrid').style.display = 'grid';
+
+            const calcData = XLSX.utils.sheet_to_json(calcSheet, {header: 1});
+            const paymentData = XLSX.utils.sheet_to_json(dataSheet, {header: 1});
+
+            // Get balance
+            let balance = 0;
+            if (settingsSheet) {
+                const settingsData = XLSX.utils.sheet_to_json(settingsSheet, {header: 1});
+                if (settingsData[0] && settingsData[0][1]) balance = settingsData[0][1];
+            }
+            document.getElementById('balance').textContent = '₪' + Math.round(balance).toLocaleString('he-IL');
+
+            const today = new Date();
+            document.getElementById('balanceDate').textContent = 'נכון לתאריך ' + today.toLocaleDateString('he-IL');
+
+            // Calculate total debts
+            let totalDebts = 0;
+            const currentMonth = today.getMonth();
+
+            for (let i = 1; i < paymentData.length; i++) {
+                const isActive = paymentData[i][3];
+                const oldDebt = paymentData[i][4] || 0;
+                if (isActive === 1) totalDebts += oldDebt;
+            }
+
+            for (let monthIdx = 0; monthIdx < currentMonth; monthIdx++) {
+                const row = calcData[13 + monthIdx]; // Jan 26 = calcData[13]
+                if (row) {
+                    const expectedTotal = row[1] || 0;
+                    const notPaid = row[4] || 0;
+                    const activeApts = row[7] || 1;
+                    totalDebts += (notPaid / activeApts) * expectedTotal;
+                }
+            }
+
+            document.getElementById('totalDebts').textContent = '₪' + Math.round(totalDebts).toLocaleString('he-IL');
+
+            // Get current month data
+            // calcData[0] = header, calcData[1] = Jan 25, ... calcData[13] = Jan 26, calcData[14] = Feb 26
+            const currentMonthRow = 13 + currentMonth; // Feb = month 1, so 13+1=14 which is Feb 26
+            const currentData = calcData[currentMonthRow];
+
+            if (!currentData) return;
+
+            const expectedTotal = currentData[1] || 0;
+            const paid = currentData[2] || 0;
+            const waiting = currentData[3] || 0;
+            const notPaid = currentData[4] || 0;
+            const collected = currentData[5] || 0;
+            const percentage = currentData[6] || 0;
+            const activeApts = currentData[7] || 76;
+
+            const percentageNum = Math.round(percentage * 100);
+            const rateEl = document.getElementById('collectionRate');
+            rateEl.textContent = percentageNum + '%';
+            rateEl.classList.remove('green', 'orange', 'red');
+
+            let colorClass = 'red';
+            if (percentageNum >= 90) colorClass = 'green';
+            else if (percentageNum >= 71) colorClass = 'orange';
+            rateEl.classList.add(colorClass);
+
+            document.getElementById('collectedAmount').textContent = '₪' + Math.round(collected).toLocaleString('he-IL');
+            document.getElementById('expectedAmount').textContent = '₪' + Math.round(expectedTotal).toLocaleString('he-IL');
+
+            const paidEl = document.getElementById('paidApts');
+            paidEl.textContent = paid;
+            paidEl.classList.remove('green', 'orange', 'red');
+            paidEl.classList.add(colorClass);
+
+            document.getElementById('totalActiveApts').textContent = activeApts;
+            // Update status breakdown title with current month
+            const monthMap = {
+                'ינואר': '01', 'פברואר': '02', 'מרץ': '03',
+                'אפריל': '04', 'מאי': '05', 'יוני': '06',
+                'יולי': '07', 'אוגוסט': '08', 'ספטמבר': '09',
+                'אוקטובר': '10', 'נובמבר': '11', 'דצמבר': '12'
+            };
+
+            const currentMonthName = currentData[0];
+            let formattedMonth = currentMonthName;
+
+            for (const [heb, num] of Object.entries(monthMap)) {
+                if (currentMonthName && currentMonthName.includes(heb)) {
+                    const year = currentMonthName.split(' ')[1];
+                    formattedMonth = `${num}/${year}`;
+                    break;
+                }
+            }
+
+
+            // Chart & Table: 12 months INCLUDING current month
+            const months = [];
+            const incomes = [];
+            const expenses = [];
+            const percentages = [];
+
+            const endRow = currentMonthRow; // Include current month
+            const startRow = endRow - 11; // Go back 11 months (total 12 months)
+
+            for (let i = startRow; i <= endRow; i++) {
+                if (calcData[i] && calcData[i][0]) {
+                    const monthName = calcData[i][0];
+
+                    const monthMap = {
+                        'ינואר': '01', 'פברואר': '02', 'מרץ': '03',
+                        'אפריל': '04', 'מאי': '05', 'יוני': '06',
+                        'יולי': '07', 'אוגוסט': '08', 'ספטמבר': '09',
+                        'אוקטובר': '10', 'נובמבר': '11', 'דצמבר': '12'
+                    };
+
+                    let formatted = monthName;
+                    for (const [heb, num] of Object.entries(monthMap)) {
+                        if (monthName.includes(heb)) {
+                            const year = monthName.split(' ')[1];
+                            formatted = `${num}/${year}`;
+                            break;
+                        }
+                    }
+
+                    months.push(formatted);
+                    const income = calcData[i][5] || 0;
+                    incomes.push(Math.round(income));
+                    percentages.push(Math.round((calcData[i][6] || 0) * 100));
+
+                    // Get expense from expenses section
+                    const expenseRow = 28 + i;
+                    const expense = calcData[expenseRow] ? (calcData[expenseRow][1] || 0) : 0;
+                    expenses.push(Math.round(expense));
+                }
+            }
+
+            updateSummaryTable(months, incomes, expenses, percentages);
+            updateExpensePieChart(calcData, startRow, endRow);
+
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleString('he-IL');
+        }
+
+        function updateSummaryTable(months, incomes, expenses, percentages) {
+            const tbody = document.getElementById('summaryBody');
+            const tfoot = document.getElementById('summaryFooter');
+
+            tbody.innerHTML = '';
+
+            let totalIncome = 0;
+            let totalExpense = 0;
+
+            for (let i = 0; i < months.length; i++) {
+                const income = incomes[i];
+                const expense = expenses[i];
+                const balance = income - expense;
+
+                totalIncome += income;
+                totalExpense += expense;
+
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${months[i]}</td>
+                    <td>₪${income.toLocaleString('he-IL')}</td>
+                    <td>${percentages[i]}%</td>
+                    <td>₪${expense.toLocaleString('he-IL')}</td>
+                    <td class="${balance >= 0 ? 'positive' : 'negative'}">₪${balance.toLocaleString('he-IL')}</td>
+                `;
+            }
+
+            const avgIncome = Math.round(totalIncome / months.length);
+            const avgExpense = Math.round(totalExpense / months.length);
+            const avgBalance = avgIncome - avgExpense;
+
+            tfoot.innerHTML = `
+                <tr>
+                    <td>ממוצע 12 חודשים</td>
+                    <td>₪${avgIncome.toLocaleString('he-IL')}</td>
+                    <td>-</td>
+                    <td>₪${avgExpense.toLocaleString('he-IL')}</td>
+                    <td class="${avgBalance >= 0 ? 'positive' : 'negative'}">₪${avgBalance.toLocaleString('he-IL')}</td>
+                </tr>
+            `;
+        }
+
+        function updateExpensePieChart(calcData, startRow, endRow) {
+            const categories = [
+                'חברת אחזקה',
+                'מעליות',
+                'בזק',
+                'חשמל (כולל חניון)',
+                'מסכים',
+                'ביטוח',
+                'טיפול בתקלות',
+                'הוצאות שונות'
+            ];
+
+            const categoryTotals = {};
+            categories.forEach(cat => categoryTotals[cat] = 0);
+
+            if (!window.currentWorkbook) {
+                console.error('No workbook data available');
+                return;
+            }
+
+            const expensesSheet = window.currentWorkbook.Sheets['הוצאות'];
+            if (!expensesSheet) {
+                console.error('Expenses sheet not found');
+                return;
+            }
+
+            const expensesData = XLSX.utils.sheet_to_json(expensesSheet, {header: 1});
+
+            // Get months to include
+            const monthsToInclude = [];
+            for (let i = startRow; i <= endRow; i++) {
+                if (calcData[i] && calcData[i][0]) {
+                    monthsToInclude.push(calcData[i][0]);
+                }
+            }
+
+            // Find column indices for months
+            const headers = expensesData[0];
+            const monthIndices = [];
+
+            monthsToInclude.forEach(monthName => {
+                const idx = headers.indexOf(monthName);
+                if (idx !== -1) monthIndices.push(idx);
+            });
+
+            // Sum up each category
+            for (let catIdx = 0; catIdx < 8; catIdx++) {
+                const row = expensesData[catIdx + 1];
+                if (row) {
+                    const categoryName = categories[catIdx];
+                    monthIndices.forEach(colIdx => {
+                        const amount = row[colIdx] || 0;
+                        categoryTotals[categoryName] += amount;
+                    });
+                }
+            }
+
+            // Calculate total
+            let total = 0;
+            categories.forEach(cat => {
+                total += categoryTotals[cat];
+            });
+
+            const average = total / 12;
+
+            const container = document.getElementById('expenseCategoryBars');
+
+            if (total === 0) {
+                container.innerHTML = '<p style="text-align:center;color:#999;padding:20px;">אין נתוני הוצאות להצגה</p>';
+                return;
+            }
+
+            let html = '';
+
+            categories.forEach((category) => {
+                const amount = categoryTotals[category];
+                if (amount > 0) {
+                    const percentage = ((amount / total) * 100).toFixed(1);
+
+                    html += `
+                        <div class="category-item">
+                            <div class="category-header">
+                                <span class="category-name">${category}</span>
+                                <div>
+                                    <span class="category-percent">${percentage}%</span>
+                                    <span class="category-amount">₪${Math.round(amount).toLocaleString('he-IL')}</span>
+                                </div>
+                            </div>
+                            <div class="category-bar-bg">
+                                <div class="category-bar-fill" style="width: ${percentage}%"></div>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+
+            html += `
+                <div style="margin-top: 10px; padding-top: 8px; border-top: 2px solid #e0e0e0;">
+                    <div class="category-header">
+                        <span style="font-weight: bold; font-size: 1.0em; color: #333;">סה״כ הוצאות</span>
+                        <span style="font-weight: bold; font-size: 1.05em; color: #667eea;">
+                            ₪${Math.round(total).toLocaleString('he-IL')}
+                            <span style="font-size: 0.82em; color: #999; font-weight: normal;">
+                                (ממוצע: ₪${Math.round(average).toLocaleString('he-IL')})
+                            </span>
+                        </span>
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+    </script>
+</body>
+</html>

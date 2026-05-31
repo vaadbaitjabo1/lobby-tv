@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Blue & White Design Tokens ─────────────────────────────────────────── */
+:root {
+  /* Backgrounds */
+  --color-bg:           #ffffff;
+  --color-surface:      #ffffff;
+  --color-surface-alt:  #dbeafe;
+
+  /* Blues */
+  --color-primary:      #0d2d6b;   /* navy — headers, strong elements */
+  --color-accent:       #1a56db;   /* bright blue — accents, buttons */
+  --color-accent-light: #3b82f6;   /* lighter blue */
+  --color-border:       #bfdbfe;   /* soft blue border */
+
+  /* Text */
+  --color-anthracite:   #0d2d6b;   /* maps old anthracite → primary navy */
+  --color-charcoal:     #1e3a5f;   /* body text */
+  --color-muted:        #4b6291;   /* secondary text */
+
+  /* Keep gold aliases pointing to accent for compatibility */
+  --color-gold:         #1a56db;
+  --color-gold-light:   #3b82f6;
+  --color-gold-muted:   #bfdbfe;
+
+  /* Semantic */
+  --color-text:         var(--color-charcoal);
+  --color-heading:      var(--color-primary);
+
+  /* Typography */
+  --font-display:       'Rubik', 'Segoe UI', system-ui, sans-serif;
+  --font-body:          'Rubik', 'Segoe UI', system-ui, sans-serif;
+
+  /* Spacing */
+  --space-xs:    0.5rem;
+  --space-sm:    1rem;
+  --space-md:    1.5rem;
+  --space-lg:    2.5rem;
+  --space-xl:    4rem;
+
+  /* Radii */
+  --radius-sm:   0.375rem;
+  --radius-md:   0.75rem;
+  --radius-lg:   1.25rem;
+
+  /* Shadows */
+  --shadow-card: 0 2px 16px 0 rgba(13, 45, 107, 0.08);
+  --shadow-lg:   0 8px 40px 0 rgba(13, 45, 107, 0.14);
+
+  --screen-w: 1920px;
+  --screen-h: 1080px;
+}
+
+/* ─── Base resets ──────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  direction: rtl;
+}
