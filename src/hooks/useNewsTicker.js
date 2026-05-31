@@ -8,12 +8,7 @@ const REFRESH_MKT_MS  =  5 * 60 * 1000
 const RETRY_MS        =  3 * 60 * 1000
 const CACHE_KEY       = 'lobby_news_cache'
 
-const MARKET_SYMBOLS = [
-  { symbol: 'USDILS=X', label: 'דולר'   },
-  { symbol: 'EURILS=X', label: 'יורו'   },
-  { symbol: 'TA35.TA',  label: 'ת"א 35' },
-  { symbol: '^GSPC',    label: 'S&P 500' },
-]
+const FX_API = 'https://open.er-api.com/v6/latest/USD'
 
 function parseXmlTitles(xml) {
   const matches = [...xml.matchAll(/<title><!\[CDATA\[([^\]]+)\]\]><\/title>/g)]
@@ -57,22 +52,16 @@ function formatQuote(q) {
 }
 
 async function fetchMarket() {
-  const results = []
-  for (const { symbol, label } of MARKET_SYMBOLS) {
-    try {
-      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`
-      const res = await fetch(ALLORIGINS(url))
-      if (!res.ok) continue
-      const raw   = await res.json()
-      const chart = JSON.parse(raw.contents)?.chart?.result?.[0]
-      if (!chart) continue
-      const price  = chart.meta?.regularMarketPrice
-      const prev   = chart.meta?.chartPreviousClose
-      const change = (price != null && prev) ? ((price - prev) / prev * 100) : null
-      if (price != null) results.push({ symbol, label, price, change })
-    } catch { /* שקט */ }
-  }
-  return results
+  try {
+    const d = await fetch(FX_API).then(r => r.json())
+    if (!d?.rates?.ILS) return []
+    const usd = d.rates.ILS
+    const eur = d.rates.ILS / d.rates.EUR
+    return [
+      { symbol: 'USDILS=X', label: 'דולר', price: usd, change: null },
+      { symbol: 'EURILS=X', label: 'יורו',  price: eur, change: null },
+    ]
+  } catch { return [] }
 }
 
 export function useNewsTicker() {
