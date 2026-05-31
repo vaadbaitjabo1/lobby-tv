@@ -91,10 +91,20 @@ RTL: בגריד, הילד הראשון ב-DOM = ימין ויזואלית.
 
 **רווחים בטיקר**: רווח רגיל מתמוטט ב-CSS. פתרון: ` ` (non-breaking space).
 
+## GitHub / Deployment
+
+- **ריפו:** https://github.com/vaadbaitjabo1/lobby-tv
+- **אתר חי:** https://vaadbaitjabo1.github.io/lobby-tv/
+- **דחיפה:** `git push origin main` ← האתר מתעדכן אוטומטית תוך ~2 דקות
+- **Remote URL כולל טוקן** (כך עובד ה-push): `https://ghp_...@github.com/vaadbaitjabo1/lobby-tv.git`
+- **Secrets ב-GitHub Actions:** `SUPABASE_ANON_KEY`, `OPENWEATHER_KEY`, `ADMIN_PASSWORD`
+- **Keepalive:** `.github/workflows/supabase-keepalive.yml` — כל ראשון 09:00 ישראל
+- **Deploy:** `.github/workflows/deploy.yml` — בונה `dist/` ומעלה ל-Pages בכל push ל-main
+
 ## מה נשאר / TODO
 - [ ] `QRBox.jsx` שורה 2: `MANAGEMENT_URL` — לעדכן ל-URL האמיתי של חברת הניהול
 - [ ] Gallery — עדיין placeholder, צריך Supabase + מחזור תמונות/וידאו
 - [ ] Announcements — חיבור ל-Supabase (טבלת `announcements`)
 - [ ] BusinessPromo — תוכן אמיתי (עסקים מהטבלה)
 - [ ] Admin panel `/admin`
-- [ ] GitHub Pages deploy
+- [ ] לחבר את הטלוויזיות בלובי לכתובת https://vaadbaitjabo1.github.io/lobby-tv/
