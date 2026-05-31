@@ -72,61 +72,23 @@ async function fetchYnet(rssId, source, sourceColor) {
 async function fetchSport()   { return fetchYnet(3, 'ynet ספורט', '#b91c1c') }
 async function fetchEconomy() { return fetchYnet(6, 'ynet כלכלה', '#15532e') }
 
-// ─── Hebrew Wikipedia description ────────────────────────────────────────────
-async function getHebDesc(enTitle) {
-  try {
-    const langData = await fetch(
-      `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(enTitle)}&prop=langlinks&lllang=he&format=json&origin=*`
-    ).then(r => r.json())
-    const heTitle = Object.values(langData.query?.pages ?? {})[0]?.langlinks?.[0]?.['*']
-    if (!heTitle) return null
-    const { extract } = await fetch(
-      `https://he.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(heTitle)}`
-    ).then(r => r.json())
-    return extract ? firstSentences(extract, 2) : null
-  } catch { return null }
-}
+const BDAY_API = 'https://api-v2.appdeploy.ai/app/e52860b99a4f4b8c84/api/born-today'
 
-// ─── Birthdays via Wikipedia ──────────────────────────────────────────────────
+// ─── Birthdays via AppDeploy backend (Hebrew, AI-generated) ──────────────────
 async function fetchBirthdays() {
-  const now   = new Date()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day   = String(now.getDate()).padStart(2, '0')
-  const data  = await fetch(
-    `https://en.wikipedia.org/api/rest_v1/feed/onthisday/births/${month}/${day}`
-  ).then(r => r.json())
-
-  const candidates = (data.births ?? [])
-    .filter(b => {
-      const p = b.pages?.[0]
-      return p?.thumbnail?.source && p.thumbnail.width >= 200 && p.extract?.length >= 500
-    })
-    .sort((a, b) => {
-      const score = item => (item.pages[0].thumbnail?.width || 0) * 3 + (item.pages[0].extract?.length || 0) / 4
-      return score(b) - score(a)
-    })
-    .slice(0, 8)
-
-  const withHebrew = await Promise.all(candidates.map(async b => {
-    const page   = b.pages[0]
-    const heDesc = await getHebDesc(page.titles.normalized)
-    return { b, page, heDesc, hasHebrew: !!heDesc }
-  }))
-
-  // מעדיף ידוענים עם ערך בוויקיפדיה עברית
-  const sorted = [...withHebrew].sort((a, b) => Number(b.hasHebrew) - Number(a.hasHebrew))
-  const top    = sorted.slice(0, 3)
-
-  return top.map(({ b, page, heDesc }) => {
-    const yearHe = b.year ? ` (נולד ב-${b.year})` : ''
-    return {
-      source:      'נולדו היום',
-      sourceColor: '#4c1d95',
-      title:       page.titles.normalized,
-      description: (heDesc ?? firstSentences(page.extract, 2)) + yearHe,
-      image:       upgradeImageQuality(page.thumbnail.source),
-    }
+  const { data } = await fetch(BDAY_API).then(async r => {
+    const d = await r.json()
+    return { data: d }
   })
+  if (!Array.isArray(data) || data.length === 0) return []
+  return data.map(item => ({
+    source:      'נולדו היום',
+    sourceColor: '#4c1d95',
+    title:       item.name,
+    description: item.description,
+    image:       upgradeImageQuality(item.image_url),
+    birthYear:   item.birth_year,
+  }))
 }
 
 // ─── Build rotation sequence ──────────────────────────────────────────────────

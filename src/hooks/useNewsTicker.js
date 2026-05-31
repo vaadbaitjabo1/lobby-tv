@@ -8,7 +8,8 @@ const REFRESH_MKT_MS  =  5 * 60 * 1000
 const RETRY_MS        =  3 * 60 * 1000
 const CACHE_KEY       = 'lobby_news_cache'
 
-const FX_API = 'https://open.er-api.com/v6/latest/USD'
+const MARKET_API = 'https://api-v2.appdeploy.ai/app/e52860b99a4f4b8c84/api/market-data'
+const FX_API     = 'https://open.er-api.com/v6/latest/USD'
 
 function parseXmlTitles(xml) {
   const matches = [...xml.matchAll(/<title><!\[CDATA\[([^\]]+)\]\]><\/title>/g)]
@@ -41,10 +42,10 @@ function formatQuote(q) {
     changePart  = ` <span style="color:${color}">${arrow}${pct}</span>`
   }
 
-  if (q.symbol === 'USDILS=X') {
+  if (q.symbol === 'USDILS' || q.symbol === 'USDILS=X') {
     return `<span dir="ltr">${escHtml(price)}${changePart} : <span style="color:#4ade80">$</span> 💵</span>`
   }
-  if (q.symbol === 'EURILS=X') {
+  if (q.symbol === 'EURILS' || q.symbol === 'EURILS=X') {
     return `<span dir="ltr">${escHtml(price)}${changePart} : <span style="color:#f59e0b">€</span> 💶</span>`
   }
   const changeLeft = changePart ? changePart.trimStart() + ' ' : ''
@@ -52,14 +53,18 @@ function formatQuote(q) {
 }
 
 async function fetchMarket() {
+  // ניסיון ראשון: AppDeploy backend (ת"א 35 + S&P + דולר + יורו)
+  try {
+    const data = await fetch(MARKET_API).then(r => r.json())
+    if (Array.isArray(data) && data.length) return data
+  } catch {}
+  // fallback: שערי מטבע בלבד מ-open.er-api
   try {
     const d = await fetch(FX_API).then(r => r.json())
     if (!d?.rates?.ILS) return []
-    const usd = d.rates.ILS
-    const eur = d.rates.ILS / d.rates.EUR
     return [
-      { symbol: 'USDILS=X', label: 'דולר', price: usd, change: null },
-      { symbol: 'EURILS=X', label: 'יורו',  price: eur, change: null },
+      { symbol: 'USDILS',   label: 'דולר', price: d.rates.ILS,                    change: null },
+      { symbol: 'EURILS',   label: 'יורו',  price: d.rates.ILS / d.rates.EUR,      change: null },
     ]
   } catch { return [] }
 }

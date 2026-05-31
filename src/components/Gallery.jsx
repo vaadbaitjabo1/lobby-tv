@@ -15,7 +15,7 @@ function buildEmbedUrl(videoId) {
     autoplay: '1',
     loop: '1',
     playlist: videoId,   // required for loop to work
-    mute: '0',
+    mute: '1',
     controls: '0',
     rel: '0',
     modestbranding: '1',
