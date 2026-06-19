@@ -4,13 +4,13 @@ import { useNewsTicker } from '../hooks/useNewsTicker'
 // Non-breaking spaces so the browser never collapses them
 const NBSP      = ' '
 const SEPARATOR = NBSP.repeat(10) + '◆' + NBSP.repeat(10)
-const PX_PER_SEC = 90
+const PX_PER_SEC = 70
 
-// CSS keyframe animation — runs on compositor thread, reliable on TV browsers
+// CSS keyframe animation — GPU-composited via translate3d, works on TV browsers
 const TICKER_KEYFRAMES = `
   @keyframes ticker-scroll {
-    from { transform: translateX(-50%); }
-    to   { transform: translateX(0%);   }
+    from { transform: translate3d(-50%, 0, 0); }
+    to   { transform: translate3d(0%, 0, 0);   }
   }
 `
 
@@ -110,11 +110,13 @@ export default function NewsTicker() {
             fontSize: '1.55rem',
             fontWeight: 500,
             willChange: 'transform',
+            transform: 'translate3d(0,0,0)',  // force GPU layer on TV browsers
+            backfaceVisibility: 'hidden',
             position: 'absolute',
             left: 0,
-            // Show only once duration is measured; CSS animation handles all movement
             visibility: duration ? 'visible' : 'hidden',
             animation: duration ? `ticker-scroll ${duration}s linear infinite` : 'none',
+            WebkitAnimation: duration ? `ticker-scroll ${duration}s linear infinite` : 'none',
           }}
         />
       </div>
