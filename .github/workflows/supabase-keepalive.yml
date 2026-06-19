@@ -2,7 +2,7 @@ name: Supabase Keepalive
 
 on:
   schedule:
-    - cron: '0 6 * * 0'   # כל ראשון ב-09:00 שעון ישראל (06:00 UTC)
+    - cron: '0 6 * * *'   # כל יום ב-09:00 שעון ישראל (06:00 UTC)
   workflow_dispatch:        # אפשרות להפעיל ידנית
 
 jobs:
