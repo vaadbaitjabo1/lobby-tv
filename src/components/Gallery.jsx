@@ -15,7 +15,7 @@ function buildEmbedUrl(videoId) {
     autoplay: '1',
     loop: '1',
     playlist: videoId,   // required for loop to work
-    mute: '1',
+    mute: '0',
     controls: '0',
     rel: '0',
     modestbranding: '1',
@@ -26,7 +26,7 @@ function buildEmbedUrl(videoId) {
     vq: 'hd1080',
     hd: '1',
   })
-  return `https://www.youtube.com/embed/${videoId}?${params}`
+  return `https://www.youtube-nocookie.com/embed/${videoId}?${params}`
 }
 
 export default function Gallery() {
