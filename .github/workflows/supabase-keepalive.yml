@@ -9,15 +9,15 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Supabase lobby-tv
+      - name: Query a real table to count as DB activity
         run: |
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
             -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
-            "https://cjklubeoqrpmcwjuekgp.supabase.co/rest/v1/")
+            "https://cjklubeoqrpmcwjuekgp.supabase.co/rest/v1/settings?select=key&limit=1")
           echo "Status: $STATUS"
-          if [ "$STATUS" = "200" ] || [ "$STATUS" = "404" ]; then
-            echo "✅ Supabase project is alive"
+          if [ "$STATUS" = "200" ]; then
+            echo "✅ Supabase table query succeeded — counts as DB activity"
           else
             echo "❌ Unexpected status: $STATUS"
             exit 1
